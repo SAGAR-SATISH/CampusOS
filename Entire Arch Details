@@ -1,0 +1,422 @@
+Campus OS Overall Arch
+                         +----------------------+
+                         |        USERS         |
+                         +----------+-----------+
+                                    |
+              +---------------------+---------------------+
+              |                     |                     |
+              v                     v                     v
+        +-----------+         +-----------+         +-----------+
+        |  STUDENT  |         |  FACULTY  |         |  ADMIN    |
+        +-----+-----+         +-----+-----+         +-----+-----+
+              |                     |                     |
+              +---------------------+---------------------+
+                                    |
+                                    v
+                         +----------------------+
+                         |    REACT FRONTEND    |
+                         +----------+-----------+
+                                    |
+                         REST API / WebSocket
+                                    |
+                                    v
+                         +----------------------+
+                         |   NODE + EXPRESS     |
+                         |       BACKEND        |
+                         +----------+-----------+
+                                    |
+              +---------------------+---------------------+
+              |                     |                     |
+              v                     v                     v
+       +-------------+       +-------------+       +-------------+
+       | PostgreSQL  |       |    Redis    |       |File Storage |
+       +-------------+       +-------------+       +-------------+
+                                    |
+                                    v
+                         +----------------------+
+                         |      Socket.IO       |
+                         |   Real-Time Events   |
+                         +----------------------+
+
+--------------------------------Backend Arch--------------------------------
+              backend/
+              |
+              +-- src/
+              |   |
+              |   +-- config/
+              |   |   +-- database.js
+              |   |   +-- redis.js
+              |   |   +-- environment.js
+              |   |
+              |   +-- middleware/
+              |   |   +-- auth.js
+              |   |   +-- role.js
+              |   |   +-- validation.js
+              |   |   +-- errorHandler.js
+              |   |
+              |   +-- modules/
+              |   |   |
+              |   |   +-- auth/
+              |   |   +-- users/
+              |   |   +-- students/
+              |   |   +-- faculty/
+              |   |   +-- departments/
+              |   |   +-- subjects/
+              |   |   +-- attendance/
+              |   |   +-- assignments/
+              |   |   +-- marks/
+              |   |   +-- timetable/
+              |   |   +-- leaves/
+              |   |   +-- notices/
+              |   |   +-- notifications/
+              |   |   +-- reports/
+              |   |
+              |   +-- utils/
+              |   |
+              |   +-- app.js
+              |
+              +-- server.js
+              +-- package.json
+   Each module follows:
+          attendance/
+          |
+          +-- attendance.routes.js
+          +-- attendance.controller.js
+          +-- attendance.service.js
+          +-- attendance.repository.js
+          +-- attendance.validation.js
+  The Flow:
+        Route
+          |
+          v
+        Controller
+          |
+          v
+        Service
+          |
+          v
+        Repository
+          |
+          v
+        MySQL
+--------------------------------Database Arch--------------------------------
+        +-------------+
+        |    USERS    |
+        +------+------+
+               |
+               +-------------------+
+               |                   |
+               v                   v
+        +-------------+     +-------------+
+        |  STUDENTS   |     |  FACULTY    |
+        +------+------+     +------+------+
+               |                   |
+               |                   |
+               v                   v
+        +-------------+     +-------------+
+        | ENROLLMENTS |     |  SUBJECTS   |
+        +------+------+     +------+------+
+               |                   |
+               +---------+---------+
+                         |
+                +--------+--------+
+                |        |        |
+                v        v        v
+           ATTENDANCE  MARKS  ASSIGNMENTS
+                                  |
+                                  v
+                             SUBMISSIONS
+        
+        
+        +-------------+
+        | DEPARTMENT  |
+        +------+------+ 
+               |
+               +------------------+
+               |                  |
+               v                  v
+           STUDENTS            FACULTY
+        
+        
+        +-------------+
+        | TIMETABLE   |
+        +-------------+
+        | subject     |
+        | faculty     |
+        | class       |
+        | room        |
+        | day         |
+        | start_time  |
+        | end_time    |
+        +-------------+
+        
+        
+        +-------------+
+        | LEAVE       |
+        +-------------+
+        | student     |
+        | reason      |
+        | from_date   |
+        | to_date     |
+        | status      |
+        +-------------+
+        
+        
+        +-------------+
+        |   NOTICES   |
+        +-------------+
+        | title       |
+        | content     |
+        | created_by  |
+        | created_at  |
+        +-------------+
+        
+        
+        +----------------+
+        | NOTIFICATIONS  |
+        +----------------+
+        | user_id        |
+        | message        |
+        | type           |
+        | is_read        |
+        +----------------+
+
+--------------------------------Authen & Author--------------------------------
+                            LOGIN
+                              |
+                              v
+                       +-------------+
+                       |    React    |
+                       +------+------+
+                              |
+                              | POST /api/auth/login
+                              v
+                       +-------------+
+                       |   Express   |
+                       +------+------+
+                              |
+                              v
+                       +-------------+
+                       | Find User   |
+                       | PostgreSQL  |
+                       +------+------+
+                              |
+                              v
+                       +-------------+
+                       |   bcrypt    |
+                       | Verification|
+                       +------+------+
+                              |
+                              v
+                       +-------------+
+                       | Generate JWT|
+                       +------+------+
+                              |
+                              v
+                       +-------------+
+                       |    React    |
+                       +------+------+
+                              |
+                              | Protected Request
+                              v
+                       +-------------+
+                       | JWT Middleware|
+                       +------+------+
+                              |
+                              v
+                       +-------------+
+                       | Role Check  |
+                       +------+------+
+                              |
+                  +-----------+-----------+
+                  |           |           |
+                  v           v           v
+              STUDENT      FACULTY      ADMIN
+
+--------------------------------Real - Time Arch--------------------------------
+                        +-------------+
+                        |   FACULTY   |
+                        +------+------+
+                               |
+                               | Create Notice
+                               v
+                        +-------------+
+                        |    React    |
+                        +------+------+
+                               |
+                               v
+                        +-------------+
+                        |   Express   |
+                        +------+------+
+                               |
+                               +------------------+
+                               |                  |
+                               v                  v
+                        +-------------+    +-------------+
+                        | PostgreSQL  |    |  Socket.IO  |
+                        | Save Notice |    | Emit Event  |
+                        +-------------+    +------+------+
+                                                  |
+                                      +-----------+-----------+
+                                      |           |           |
+                                      v           v           v
+                                  +-------+   +-------+   +-------+
+                                  |Student|   |Student|   |Student|
+                                  |   A   |   |   B   |   |   C   |
+                                  +-------+   +-------+   +-------+
+                                      |           |           |
+                                      v           v           v
+                                     🔔          🔔          🔔
+                    Potencial Events:
+                      notice:new
+                      assignment:new
+                      leave:updated
+                      attendance:updated
+                      notification:new
+
+--------------------------------CampusOS Modules--------------------------------
+                                       CAMPUSOS
+                                          |
+                     +--------------------+--------------------+
+                     |                    |                    |
+                     v                    v                    v
+                 ACADEMIC              PEOPLE              ADMIN
+                     |                    |                    |
+                     |                    |                    |
+                 +---+---+            +---+---+          +-----+-----+
+                 |       |            |       |          |           |
+                 v       v            v       v          v           v
+              Attendance Marks      Students Faculty   Departments  Users
+                 |       |
+                 |       +---- Assignments
+                 |
+                 +------------ Timetable
+              
+              
+                                       CAMPUSOS
+                                          |
+                            +-------------+-------------+
+                            |             |             |
+                            v             v             v
+                          LEAVE        NOTICES      REPORTS
+                            |
+                            v
+                        Notifications
+
+--------------------------------Student App Flow--------------------------------
+                                     STUDENT
+                                        |
+                                        v
+                                   DASHBOARD
+                                        |
+                    +-------------------+-------------------+
+                    |          |         |         |        |
+                    v          v         v         v        v
+               Attendance  Timetable  Marks  Assignments  Notices
+                    |                    |         |
+                    |                    |         v
+                    |                    |     Submission
+                    |                    |
+                    v                    v
+               Attendance            Performance
+                History                Summary
+              
+              
+                                        |
+                                        v
+                                  Leave Request
+                                        |
+                                        v
+                                   Faculty/HOD
+                                        |
+                                   +----+----+
+                                   |         |
+                                   v         v
+                                APPROVED   REJECTED
+--------------------------------Faculty App Flow--------------------------------
+                                       FACULTY
+                                          |
+                                          v
+                                     DASHBOARD
+                                          |
+                     +--------------------+--------------------+
+                     |                    |                    |
+                     v                    v                    v
+                 Attendance          Assignments             Marks
+                     |                    |                    |
+                     v                    v                    v
+              Mark Attendance       Create Assignment     Enter Marks
+                     |                    |                    |
+                     v                    v                    v
+                 Students              Students           Students
+                                          |
+                                          v
+                                     Submissions
+
+--------------------------------Admin App Flow--------------------------------
+                                      ADMIN
+                                        |
+                                        v
+                                   DASHBOARD
+                                        |
+                    +-------------------+-------------------+
+                    |          |         |         |        |
+                    v          v         v         v        v
+                  Users   Departments Subjects  Classes  Timetable
+                    |          |         |         |
+                    +----------+---------+---------+
+                                        |
+                                        v
+                                   Configuration
+--------------------------------Final Arch--------------------------------
+                                     INTERNET
+                                        |
+                                        v
+                               +------------------+
+                               |  React Frontend  |
+                               |      Vercel      |
+                               +--------+---------+
+                                        |
+                                 HTTPS / REST
+                                        |
+                                        v
+                               +------------------+
+                               |   Node/Express   |
+                               |     Backend      |
+                               +--------+---------+
+                                        |
+                        +---------------+---------------+
+                        |               |               |
+                        v               v               v
+                 +-------------+  +-------------+  +-------------+
+                 | PostgreSQL  |  |    Redis    |  | File Storage|
+                 +-------------+  +-------------+  +-------------+
+                                        |
+                                        v
+                                 +-------------+
+                                 |  Socket.IO  |
+                                 +-------------+
+          // CHANGES REQUIRED
+              Frontend
+              └── React
+                  ├── React Router
+                  ├── State Management
+                  ├── Axios
+                  └── Chart Library
+            
+            Backend
+              └── Node.js
+                  └── Express
+                      ├── JWT
+                      ├── bcrypt
+                      ├── Socket.IO
+                      └── Validation
+            
+            Database
+              └── PostgreSQL
+            
+            Optional infrastructure
+              ├── Redis
+              ├── Object/File Storage
+              ├── Docker
+              └── GitHub Actions
